@@ -1,6 +1,6 @@
-const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
-
 exports.handler = async (event, context) => {
+  console.log("Function called with method:", event.httpMethod);
+
   const headers = {
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Headers": "Content-Type",
@@ -8,13 +8,8 @@ exports.handler = async (event, context) => {
     "Content-Type": "application/json",
   };
 
-  // Handle preflight requests
   if (event.httpMethod === "OPTIONS") {
-    return {
-      statusCode: 200,
-      headers,
-      body: "",
-    };
+    return { statusCode: 200, headers, body: "" };
   }
 
   if (event.httpMethod !== "POST") {
@@ -26,19 +21,25 @@ exports.handler = async (event, context) => {
   }
 
   try {
-    const { name, email, site } = JSON.parse(event.body);
+    if (!process.env.STRIPE_SECRET_KEY) {
+      return {
+        statusCode: 500,
+        headers,
+        body: JSON.stringify({ error: "Missing Stripe configuration" }),
+      };
+    }
+
+    const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
+    const { name, email, site } = JSON.parse(event.body || "{}");
 
     if (!name || !email || !site) {
       return {
         statusCode: 400,
         headers,
-        body: JSON.stringify({
-          error: "Missing required fields: name, email, site",
-        }),
+        body: JSON.stringify({ error: "Missing required fields" }),
       };
     }
 
-    // Create Stripe Checkout Session
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ["card"],
       line_items: [
@@ -47,43 +48,33 @@ exports.handler = async (event, context) => {
             currency: "eur",
             product_data: {
               name: "Monthly Raffle Entry",
-              description: `Raffle ticket for ${site} monthly draw`,
-              images: [
-                "https://via.placeholder.com/300x200?text=Raffle+Ticket",
-              ],
+              description: `Raffle ticket for ${site}`,
             },
-            unit_amount: 100, // €1.00 in cents
+            unit_amount: 100, // €1.00
           },
           quantity: 1,
         },
       ],
       mode: "payment",
-      success_url: `${
-        event.headers.origin || "https://localhost:3000"
-      }/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${event.headers.origin || "https://localhost:3000"}/cancel`,
+      success_url: `https://${site}/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `https://${site}/cancel`,
       customer_email: email,
       metadata: {
         customer_name: name,
         site: site,
         raffle_entry: "true",
       },
-      payment_intent_data: {
-        application_fee_amount: 20,
-      },
     });
 
-    console.log("Created session:", session.id, "for", email, "on", site);
+    console.log("Session created:", session.id);
 
     return {
       statusCode: 200,
       headers,
-      body: JSON.stringify({
-        sessionId: session.id,
-      }),
+      body: JSON.stringify({ sessionId: session.id }),
     };
   } catch (error) {
-    console.error("Error creating checkout session:", error);
+    console.error("Function error:", error.message);
 
     return {
       statusCode: 500,

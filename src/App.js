@@ -1,23 +1,37 @@
-import logo from './logo.svg';
-import './App.css';
+import React from "react";
+import RaffleCTA from "./components/RaffleCTA";
+import "./App.css";
 
 function App() {
   return (
     <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
+      <div className="sidebar">
+        <h3>Site Navigation</h3>
+        <ul>
+          <li>
+            <a href="#home">Home</a>
+          </li>
+          <li>
+            <a href="#about">About</a>
+          </li>
+          <li>
+            <a href="#events">Events</a>
+          </li>
+        </ul>
+
+        {/* Raffle CTA Widget */}
+        <RaffleCTA />
+      </div>
+
+      {/* Main content area */}
+      <div className="main-content">
+        <h1>Welcome to CityLore</h1>
+        <p>Your local city guide and community platform.</p>
         <p>
-          Edit <code>src/App.js</code> and save to reload.
+          Don't miss out on our monthly raffle - buy a €1 ticket for a chance to
+          win amazing prizes!
         </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
+      </div>
     </div>
   );
 }

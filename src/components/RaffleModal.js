@@ -47,9 +47,21 @@ const RaffleModal = ({ isOpen, onClose }) => {
 
       console.log("Session created:", data.sessionId);
 
+      if (!window.Stripe) {
+        const stripeScript = document.createElement("script");
+        stripeScript.src = "https://js.stripe.com/v3/";
+        stripeScript.async = true;
+        document.head.appendChild(stripeScript);
+
+        await new Promise((resolve) => {
+          stripeScript.onload = resolve;
+        });
+      }
+
       const stripe = window.Stripe(
-        process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY || "pk_test_..."
+        process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY
       );
+
       const { error: stripeError } = await stripe.redirectToCheckout({
         sessionId: data.sessionId,
       });
@@ -59,7 +71,7 @@ const RaffleModal = ({ isOpen, onClose }) => {
       }
     } catch (err) {
       setError(err.message);
-      console.error("Error creating checkout session:", err);
+      console.error("Error:", err);
     } finally {
       setIsLoading(false);
     }
